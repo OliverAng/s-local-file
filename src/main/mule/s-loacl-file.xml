@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="d9119734-ea13-4a21-b12f-5bea05aae5ce" >
+		<http:listener-connection host="0.0.0.0" port="8084" />
+	</http:listener-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="efae7780-813e-40d5-910c-54a7668f16e3" >
+		<file:connection workingDir="C:\Users\Oliver" />
+	</file:config>
+	<flow name="s-loacl-fileFlow" doc:id="347c56f5-530f-44ad-ab7c-169b9921b1bf" >
+		<http:listener doc:name="Listener" doc:id="68e1b59c-8b2b-49c2-9a08-69e5ea9d7220" config-ref="HTTP_Listener_config" path="/local"/>
+		<file:list doc:name="List" doc:id="10952b5b-e4a2-4bdd-b384-93addaf28ecf" config-ref="File_Config" directoryPath="C:\Users\Oliver\onboardingProject1"/>
+		<foreach doc:name="For Each" doc:id="665fd08f-b3cb-4be0-8e0c-30c1a394e07c" >
+			<file:read doc:name="Read" doc:id="b78e1801-1ebd-4742-b2d0-b6bd0f657aa6" config-ref="File_Config" path="#[attributes.path]" outputMimeType='application/csv; header=false; separator=";"'/>
+			<ee:transform doc:name="Transform Message" doc:id="0d41b0dd-6f7f-483d-8427-cd88e242de7c" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map {
+	userID: $.column_0,
+	name: $.column_1,
+	last_name: $.column_2,
+	email: $.column_3
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<set-variable value="#[payload &gt;&gt; (vars.fullPayload default [])]" doc:name="Set Variable" doc:id="83532f22-e208-4206-b0c3-a83836239500" variableName="fullPayload"/>
+		</foreach>
+		<set-payload value="#[vars.fullPayload flatMap $]" doc:name="Set Payload" doc:id="c367d6ce-fed5-4b0c-94a4-e7661306b035" mimeType="application/json"/>
+	</flow>
+</mule>
